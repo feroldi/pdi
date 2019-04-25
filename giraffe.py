@@ -7,64 +7,47 @@ from pathlib import Path
 
 
 def load_image(image_directory: Path) -> np.ndarray:
-    matrix = imageio.imread(image_directory)
-    # Removes alpha channel if there is any
-    no_alpha_matrix = matrix[:, :, :3]
-    return no_alpha_matrix
+    return imageio.imread(image_directory)
 
 
 def save_image(image: np.ndarray, image_directory: Path):
     imageio.imwrite(image_directory, image)
 
 
-def grayscale(image: np.ndarray) -> np.ndarray:
-    def f(r, g, b):
+def rgb_to_grayscale(image: np.ndarray) -> np.ndarray:
+    def f(pixel):
+        r, g, b = pixel
         pixel = 0.21 * r + 0.72 * g + 0.07 * b
-        return [pixel] * 3
+        return pixel
 
-    return _transform(f, image)
+    return _transform(f, image, output_shape=image.shape[:2])
 
 
 def binarize(image: np.ndarray, threshold=127) -> np.ndarray:
-    def f(r, g, b):
-        r = 255 if r > threshold else 0
-        g = 255 if g > threshold else 0
-        b = 255 if b > threshold else 0
-        return [r, g, b]
+    def f(pixel):
+        return 255 if pixel > threshold else 0
 
     return _transform(f, image)
 
 
 def reverse(image: np.ndarray) -> np.ndarray:
-    def f(r, g, b):
-        return [255 - r, 255 - g, 255 - b]
+    def f(pixel):
+        return 255 - pixel
 
     return _transform(f, image)
 
 
-def nonlinear_filter_channel(
-    channel: np.ndarray, transform, window_shape=(3, 3)
-) -> np.ndarray:
+def nonlinear_filter(image: np.ndarray, transform, window_shape=(3, 3)) -> np.ndarray:
     window_w, window_h = window_shape
-    image_w, image_h = channel.shape
-    image_padded = _pad_matrix(
-        matrix=channel, width=window_w // 2, height=window_h // 2
-    )
-    output_image = np.zeros(channel.shape, dtype=channel.dtype)
+    image_w, image_h = image.shape
+    image_padded = _pad_matrix(matrix=image, width=window_w // 2, height=window_h // 2)
+    output_image = np.zeros(image.shape, dtype=image.dtype)
     for i in range(image_w):
         for j in range(image_h):
             neighbors = _neighbors(i, j, *window_shape, image_padded)
             pixel = transform(neighbors)
             output_image[i, j] = pixel
     return output_image
-
-
-def nonlinear_filter(image: np.ndarray, transform, window_shape=(3, 3)) -> np.ndarray:
-    (red, green, blue) = split_channels(image)
-    red = nonlinear_filter_channel(red, transform, window_shape=window_shape)
-    green = nonlinear_filter_channel(green, transform, window_shape=window_shape)
-    blue = nonlinear_filter_channel(blue, transform, window_shape=window_shape)
-    return np.dstack((red, green, blue))
 
 
 def correlate(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
@@ -97,26 +80,48 @@ def median_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
 
 def mode_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
     def mode(neighbors):
-        return max(channel_histogram(neighbors.flatten()))
+        return max(histogram(neighbors.flatten()))
 
     return nonlinear_filter(image, mode, window_shape)
 
 
+def k_order(image: np.ndarray, k, window_shape=(3, 3)) -> np.ndarray:
+    assert k < (window_shape[0] * window_shape[1])
+
+    def k_order(neighbors):
+        return sorted(neighbors.flatten())[k]
+
+    return nonlinear_filter(image, k_order, window_shape)
+
+
 def sobel_filter(image: np.ndarray) -> np.ndarray:
-    sobel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-    sobel_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+    kernel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+    kernel_y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
+    gx = convolve(image, kernel_x)
+    gy = convolve(image, kernel_y)
+    g = np.hypot(gx, gy)
+    g *= 255 / np.max(g)
+    return g.astype(np.uint8)
 
-    conv_x = convolve(image, sobel_x)
-    conv_y = convolve(image, sobel_y)
 
-    r_x, g_x, b_x = split_channels(conv_x)
-    r_y, g_y, b_y = split_channels(conv_y)
+def prewitt_filter(image: np.ndarray) -> np.ndarray:
+    kernel_x = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
+    kernel_y = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]])
+    gx = convolve(image, kernel_x)
+    gy = convolve(image, kernel_y)
+    g = np.hypot(gx, gy)
+    g *= 255 / np.max(g)
+    return g.astype(np.uint8)
 
-    r = np.sqrt(r_x * r_x + r_y * r_y)
-    g = np.sqrt(g_x * g_x + g_y * g_y)
-    b = np.sqrt(b_x * b_x + b_y * b_y)
 
-    return np.dstack((r, g, b)).astype(np.uint8)
+def roberts_filter(image: np.ndarray) -> np.ndarray:
+    kernel_x = np.array([[1, 0], [0, -1]])
+    kernel_y = np.array([[0, 1], [-1, 0]])
+    gx = convolve(image, kernel_x)
+    gy = convolve(image, kernel_y)
+    g = np.hypot(gx, gy)
+    g *= 255 / np.max(g)
+    return g.astype(np.uint8)
 
 
 def smoothen(image: np.ndarray) -> np.ndarray:
@@ -150,24 +155,34 @@ def normalize_kernel(kernel: np.ndarray) -> np.ndarray:
     return kernel / divider
 
 
+def color_quantize(image: np.ndarray, k) -> np.ndarray:
+    assert k >= 2 and k <= 128
+    divider = 256 // k
+
+    def f(pixel):
+        pixel += divider - (pixel % divider) - 1
+        assert pixel >= 0 and pixel <= 255
+        return pixel
+
+    return _transform(f, image)
+
+
 def histogram(image: np.ndarray):
-    hists = []
-    for channel in split_channels(image):
-        hist = channel_histogram(channel.flatten())
-        hists.append(hist)
-    return hists
-
-
-def channel_histogram(channel: np.ndarray):
+    assert len(image.shape) == 2
+    image1d = image.flatten()
     hg = {}
-    for i in channel:
-        hg[i] = hg[i] + 1 if i in hg else 1
+    for pixel in image1d:
+        hg[pixel] = hg[pixel] + 1 if pixel in hg else 1
     return hg
 
 
 def split_channels(image: np.ndarray):
     r_chan, g_chan, b_chan = np.dsplit(image, image.shape[-1])
     return (r_chan[..., 0], g_chan[..., 0], b_chan[..., 0])
+
+
+def merge_channels(red: np.ndarray, green: np.ndarray, blue: np.ndarray) -> np.ndarray:
+    return np.dstack((red, green, blue))
 
 
 def rotate180(kernel: np.ndarray) -> np.ndarray:
@@ -184,9 +199,11 @@ def _neighbors(i, j, w, h, matrix):
     return matrix[indexes]
 
 
-def _transform(f, input_matrix: np.ndarray) -> np.ndarray:
-    output_matrix = np.zeros(input_matrix.shape, dtype=input_matrix.dtype)
+def _transform(f, input_matrix: np.ndarray, output_shape=None) -> np.ndarray:
+    if not output_shape:
+        output_shape = input_matrix.shape
+    output_matrix = np.zeros(output_shape, dtype=input_matrix.dtype)
     for i, row in enumerate(input_matrix):
         for j, pixel in enumerate(row):
-            output_matrix[i, j] = f(*pixel)
+            output_matrix[i, j] = f(pixel)
     return output_matrix
