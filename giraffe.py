@@ -189,6 +189,23 @@ def rotate180(kernel: np.ndarray) -> np.ndarray:
     return np.rot90(kernel, k=2)
 
 
+def ascii_art(image: np.ndarray) -> np.ndarray:
+    ascii_chars = " .,:;irso%@9B&#"
+    rng = 256 // len(ascii_chars) + 1
+
+    width, height = image.shape
+    art = np.zeros((width, height*2), dtype=np.unicode_)
+
+    for i in range(width):
+        for j in range(height):
+            pixel = image[i, j]
+            assert pixel >= 0 and pixel <= 255
+            art[i, j*2] = ascii_chars[pixel // rng]
+            art[i, j*2+1] = ascii_chars[pixel // rng]
+
+    return art
+
+
 def _pad_matrix(matrix: np.ndarray, width, height) -> np.ndarray:
     pads = ((width, width), (height, height))
     return np.pad(matrix, pad_width=pads, mode="symmetric")
@@ -199,10 +216,11 @@ def _neighbors(i, j, w, h, matrix):
     return matrix[indexes]
 
 
-def _transform(f, input_matrix: np.ndarray, output_shape=None) -> np.ndarray:
+def _transform(f, input_matrix: np.ndarray, output_shape=None, dtype=None) -> np.ndarray:
+    dtype = dtype or input_matrix.dtype
     if not output_shape:
         output_shape = input_matrix.shape
-    output_matrix = np.zeros(output_shape, dtype=input_matrix.dtype)
+    output_matrix = np.zeros(output_shape, dtype=dtype)
     for i, row in enumerate(input_matrix):
         for j, pixel in enumerate(row):
             output_matrix[i, j] = f(pixel)

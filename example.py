@@ -26,16 +26,22 @@ def save_histogram(image: np.ndarray, path: pathlib.Path):
     fig.savefig(path, bbox_inches='tight')
     plt.close(fig=fig)
 
-image = gf.load_image('lenna.png')
 
-r, g, b = gf.split_channels(image)
+def test():
+    image = gf.load_image('lenna.png')
+    r, g, b = gf.split_channels(image)
+    r = gf.color_quantize(r, k=8)
+    g = gf.color_quantize(g, k=8)
+    b = gf.color_quantize(b, k=8)
+    out = gf.merge_channels(r, g, b)
+    gf.save_image(out, 'color-quantize-8.png')
+    save_histogram(out, 'histogram.png')
 
-r = gf.color_quantize(r, k=8)
-g = gf.color_quantize(g, k=8)
-b = gf.color_quantize(b, k=8)
+def test_ascii():
+    image = gf.load_image('lenna_32.png')
+    grayscale = gf.rgb_to_grayscale(image)
+    ascii_art = gf.ascii_art(grayscale)
+    ascii_art_display = "\n".join(map("".join, ascii_art))
+    print(ascii_art_display)
 
-out = gf.merge_channels(r, g, b)
-
-gf.save_image(out, 'color-quantize-8.png')
-
-save_histogram(out, 'histogram.png')
+test_ascii()
