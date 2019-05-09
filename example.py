@@ -54,10 +54,10 @@ def test_notebook():
 def test_mode_filter():
     image = gf.load_image('lenna.png')
     r, g, b = gf.split_channels(image)
-    r = gf.mode_filter(r)
-    g = gf.mode_filter(g)
-    b = gf.mode_filter(b)
+    r = gf.equalize_tone(r)
+    g = gf.equalize_tone(g)
+    b = gf.equalize_tone(b)
     out = gf.merge_channels(r, g, b)
-    gf.save_image(out, 'mode-filter.png')
+    gf.save_image(out, 'equalization.png')
 
 test_mode_filter()

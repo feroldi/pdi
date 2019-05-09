@@ -80,7 +80,8 @@ def median_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
 
 def mode_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
     def mode(neighbors):
-        return sorted(histogram(neighbors).items(), key=lambda kv: kv[1])[-1][0]
+        histogram = compute_histogram(neighbors)
+        return sorted(histogram.items(), key=lambda kv: kv[1])[-1][0]
 
     return nonlinear_filter(image, mode, window_shape)
 
@@ -167,10 +168,22 @@ def color_quantize(image: np.ndarray, k) -> np.ndarray:
     return _transform(f, image)
 
 
-def histogram(image: np.ndarray):
-    image1d = image.flatten()
+def equalize_tone(image: np.ndarray) -> np.ndarray:
+    assert len(image.shape) == 2
+    width, height = image.shape
+    histogram = compute_histogram(image)
+    ideal = (width * height) // 256
+    acc = 0
+    equalized_histogram = {}
+    for i in range(256):
+        acc += histogram[i] if i in histogram else 0
+        equalized_histogram[i] = max(0, (acc // ideal) - 1)
+    return _transform(lambda tone: equalized_histogram[tone], image)
+
+
+def compute_histogram(image: np.ndarray):
     hg = {}
-    for pixel in image1d:
+    for pixel in image.flatten():
         hg[pixel] = hg[pixel] + 1 if pixel in hg else 1
     return hg
 
