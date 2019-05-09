@@ -34,7 +34,7 @@ def test():
     g = gf.color_quantize(g, k=8)
     b = gf.color_quantize(b, k=8)
     out = gf.merge_channels(r, g, b)
-    gf.save_image(out, 'color-quantize-8.png')
+    gf.save_image(out, 'color-quantize.png')
     save_histogram(out, 'histogram.png')
 
 def test_ascii():
@@ -44,4 +44,20 @@ def test_ascii():
     ascii_art_display = "\n".join(map("".join, ascii_art))
     print(ascii_art_display)
 
-test_ascii()
+def test_notebook():
+    image = gf.load_image('notebook.jpg')
+    out = gf.rgb_to_grayscale(image)
+    out = gf.intensified_sharpen(out)
+    out = gf.binarize(out, threshold=60)
+    gf.save_image(out, 'notebook-binarized.png')
+
+def test_mode_filter():
+    image = gf.load_image('lenna.png')
+    r, g, b = gf.split_channels(image)
+    r = gf.mode_filter(r)
+    g = gf.mode_filter(g)
+    b = gf.mode_filter(b)
+    out = gf.merge_channels(r, g, b)
+    gf.save_image(out, 'mode-filter.png')
+
+test_mode_filter()

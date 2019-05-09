@@ -80,7 +80,7 @@ def median_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
 
 def mode_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
     def mode(neighbors):
-        return max(histogram(neighbors.flatten()))
+        return sorted(histogram(neighbors).items(), key=lambda kv: kv[1])[-1][0]
 
     return nonlinear_filter(image, mode, window_shape)
 
@@ -168,7 +168,6 @@ def color_quantize(image: np.ndarray, k) -> np.ndarray:
 
 
 def histogram(image: np.ndarray):
-    assert len(image.shape) == 2
     image1d = image.flatten()
     hg = {}
     for pixel in image1d:
@@ -194,14 +193,14 @@ def ascii_art(image: np.ndarray) -> np.ndarray:
     rng = 256 // len(ascii_chars) + 1
 
     width, height = image.shape
-    art = np.zeros((width, height*2), dtype=np.unicode_)
+    art = np.zeros((width, height * 2), dtype=np.unicode_)
 
     for i in range(width):
         for j in range(height):
             pixel = image[i, j]
             assert pixel >= 0 and pixel <= 255
-            art[i, j*2] = ascii_chars[pixel // rng]
-            art[i, j*2+1] = ascii_chars[pixel // rng]
+            art[i, j * 2] = ascii_chars[pixel // rng]
+            art[i, j * 2 + 1] = ascii_chars[pixel // rng]
 
     return art
 
@@ -216,7 +215,9 @@ def _neighbors(i, j, w, h, matrix):
     return matrix[indexes]
 
 
-def _transform(f, input_matrix: np.ndarray, output_shape=None, dtype=None) -> np.ndarray:
+def _transform(
+    f, input_matrix: np.ndarray, output_shape=None, dtype=None
+) -> np.ndarray:
     dtype = dtype or input_matrix.dtype
     if not output_shape:
         output_shape = input_matrix.shape
