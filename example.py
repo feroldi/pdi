@@ -51,7 +51,7 @@ def test_notebook():
     out = gf.binarize(out, threshold=60)
     gf.save_image(out, 'notebook-binarized.png')
 
-def test_mode_filter():
+def test_filter():
     image = gf.load_image('lenna.png')
     r, g, b = gf.split_channels(image)
     r = gf.equalize_tone(r)
@@ -60,4 +60,4 @@ def test_mode_filter():
     out = gf.merge_channels(r, g, b)
     gf.save_image(out, 'equalization.png')
 
-test_mode_filter()
+test_filter()

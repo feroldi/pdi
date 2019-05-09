@@ -20,21 +20,21 @@ def rgb_to_grayscale(image: np.ndarray) -> np.ndarray:
         pixel = 0.21 * r + 0.72 * g + 0.07 * b
         return pixel
 
-    return _transform(f, image, output_shape=image.shape[:2])
+    return transform_image(f, image, output_shape=image.shape[:2])
 
 
 def binarize(image: np.ndarray, threshold=127) -> np.ndarray:
     def f(pixel):
         return 255 if pixel > threshold else 0
 
-    return _transform(f, image)
+    return transform_image(f, image)
 
 
 def reverse(image: np.ndarray) -> np.ndarray:
     def f(pixel):
         return 255 - pixel
 
-    return _transform(f, image)
+    return transform_image(f, image)
 
 
 def nonlinear_filter(image: np.ndarray, transform, window_shape=(3, 3)) -> np.ndarray:
@@ -44,7 +44,7 @@ def nonlinear_filter(image: np.ndarray, transform, window_shape=(3, 3)) -> np.nd
     output_image = np.zeros(image.shape, dtype=image.dtype)
     for i in range(image_w):
         for j in range(image_h):
-            neighbors = _neighbors(i, j, *window_shape, image_padded)
+            neighbors = compute_neighbors(i, j, window_w, window_h, image_padded)
             pixel = transform(neighbors)
             output_image[i, j] = pixel
     return output_image
@@ -165,7 +165,7 @@ def color_quantize(image: np.ndarray, k) -> np.ndarray:
         assert pixel >= 0 and pixel <= 255
         return pixel
 
-    return _transform(f, image)
+    return transform_image(f, image)
 
 
 def equalize_tone(image: np.ndarray) -> np.ndarray:
@@ -178,7 +178,7 @@ def equalize_tone(image: np.ndarray) -> np.ndarray:
     for i in range(256):
         acc += histogram[i] if i in histogram else 0
         equalized_histogram[i] = max(0, (acc // ideal) - 1)
-    return _transform(lambda tone: equalized_histogram[tone], image)
+    return transform_image(lambda tone: equalized_histogram[tone], image)
 
 
 def compute_histogram(image: np.ndarray):
@@ -223,13 +223,13 @@ def _pad_matrix(matrix: np.ndarray, width, height) -> np.ndarray:
     return np.pad(matrix, pad_width=pads, mode="symmetric")
 
 
-def _neighbors(i, j, w, h, matrix):
+def compute_neighbors(i, j, w, h, matrix):
     indexes = np.ix_(range(i, i + w), range(j, j + h))
     return matrix[indexes]
 
 
-def _transform(
-    f, input_matrix: np.ndarray, output_shape=None, dtype=None
+def transform_image(
+    transform, input_matrix: np.ndarray, output_shape=None, dtype=None
 ) -> np.ndarray:
     dtype = dtype or input_matrix.dtype
     if not output_shape:
@@ -237,5 +237,5 @@ def _transform(
     output_matrix = np.zeros(output_shape, dtype=dtype)
     for i, row in enumerate(input_matrix):
         for j, pixel in enumerate(row):
-            output_matrix[i, j] = f(pixel)
+            output_matrix[i, j] = transform(pixel)
     return output_matrix
