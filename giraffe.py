@@ -66,7 +66,7 @@ def convolve(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
 
 def mean_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
     def mean(neighbors):
-        return sum(neighbors) // len(neighbors)
+        return np.sum(neighbors) // len(neighbors)
 
     return nonlinear_filter(image, mean, window_shape)
 
@@ -195,10 +195,6 @@ def split_channels(image: np.ndarray):
 
 def merge_channels(red: np.ndarray, green: np.ndarray, blue: np.ndarray) -> np.ndarray:
     return np.dstack((red, green, blue))
-
-
-def rotate180(kernel: np.ndarray) -> np.ndarray:
-    return np.rot90(kernel, k=2)
 
 
 def ascii_art(image: np.ndarray) -> np.ndarray:
