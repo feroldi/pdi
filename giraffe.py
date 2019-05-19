@@ -197,6 +197,22 @@ def merge_channels(red: np.ndarray, green: np.ndarray, blue: np.ndarray) -> np.n
     return np.dstack((red, green, blue))
 
 
+def rotate90_left(image: np.ndarray) -> np.ndarray:
+    return image.T[::-1, :]
+
+
+def rotate90_right(image: np.ndarray) -> np.ndarray:
+    return image.T[:, ::-1]
+
+
+def mirror_horizontal(image: np.ndarray) -> np.ndarray:
+    return image[:, ::-1]
+
+
+def mirror_vertical(image: np.ndarray) -> np.ndarray:
+    return image[::-1, :]
+
+
 def ascii_art(image: np.ndarray) -> np.ndarray:
     ascii_chars = " .,:;irso%@9B&#"
     rng = 256 // len(ascii_chars) + 1
