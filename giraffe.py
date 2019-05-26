@@ -66,7 +66,7 @@ def convolve(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
 
 def mean_filter(image: np.ndarray, window_shape=(3, 3)) -> np.ndarray:
     def mean(neighbors):
-        return np.sum(neighbors) // len(neighbors)
+        return np.clip(np.sum(neighbors) // len(neighbors), 0, 255)
 
     return nonlinear_filter(image, mean, window_shape)
 
@@ -197,20 +197,50 @@ def merge_channels(red: np.ndarray, green: np.ndarray, blue: np.ndarray) -> np.n
     return np.dstack((red, green, blue))
 
 
+def transpose(m: np.ndarray) -> np.ndarray:
+    assert len(m.shape) == 2
+    width, height = m.shape
+    mT = np.zeros((height, width)).astype(m.dtype)
+    for i in range(width):
+        for j in range(height):
+            mT[j, i] = m[i, j]
+    return mT
+
+
 def rotate90_left(image: np.ndarray) -> np.ndarray:
-    return image.T[::-1, :]
+    assert len(image.shape) == 2
+    mT = transpose(image)
+    return mirror_vertical(mT)
+    #return image.T[::-1, :]
 
 
 def rotate90_right(image: np.ndarray) -> np.ndarray:
-    return image.T[:, ::-1]
+    assert len(image.shape) == 2
+    mT = transpose(image)
+    return mirror_horizontal(mT)
+    #return image.T[:, ::-1]
 
 
 def mirror_horizontal(image: np.ndarray) -> np.ndarray:
-    return image[:, ::-1]
+    assert len(image.shape) == 2
+    out = image.copy()
+    width, height = out.shape
+    for i in range(width):
+        for j in range(height):
+            out[i, height - (j+1)] = image[i, j]
+    return out
+    #return image[:, ::-1]
 
 
 def mirror_vertical(image: np.ndarray) -> np.ndarray:
-    return image[::-1, :]
+    assert len(image.shape) == 2
+    out = image.copy()
+    width, height = out.shape
+    for i in range(width):
+        for j in range(height):
+            out[width - (i+1), j] = image[i, j]
+    return out
+    #return image[::-1, :]
 
 
 def ascii_art(image: np.ndarray) -> np.ndarray:
