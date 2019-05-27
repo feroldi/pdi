@@ -2,6 +2,7 @@
 
 import imageio
 import numpy as np
+import sys
 
 from pathlib import Path
 
@@ -211,14 +212,14 @@ def rotate90_left(image: np.ndarray) -> np.ndarray:
     assert len(image.shape) == 2
     mT = transpose(image)
     return mirror_vertical(mT)
-    #return image.T[::-1, :]
+    # return image.T[::-1, :]
 
 
 def rotate90_right(image: np.ndarray) -> np.ndarray:
     assert len(image.shape) == 2
     mT = transpose(image)
     return mirror_horizontal(mT)
-    #return image.T[:, ::-1]
+    # return image.T[:, ::-1]
 
 
 def mirror_horizontal(image: np.ndarray) -> np.ndarray:
@@ -227,9 +228,9 @@ def mirror_horizontal(image: np.ndarray) -> np.ndarray:
     width, height = out.shape
     for i in range(width):
         for j in range(height):
-            out[i, height - (j+1)] = image[i, j]
+            out[i, height - (j + 1)] = image[i, j]
     return out
-    #return image[:, ::-1]
+    # return image[:, ::-1]
 
 
 def mirror_vertical(image: np.ndarray) -> np.ndarray:
@@ -238,26 +239,33 @@ def mirror_vertical(image: np.ndarray) -> np.ndarray:
     width, height = out.shape
     for i in range(width):
         for j in range(height):
-            out[width - (i+1), j] = image[i, j]
+            out[width - (i + 1), j] = image[i, j]
     return out
-    #return image[::-1, :]
+    # return image[::-1, :]
 
 
-def ascii_art(image: np.ndarray) -> np.ndarray:
-    ascii_chars = " .,:;irso%@9B&#"
-    rng = 256 // len(ascii_chars) + 1
-
+def ascii_art(image: np.ndarray, block_size=(3, 2), white_background=False) -> np.ndarray:
+    ascii_chars = " .:oO8@"
+    if white_background:
+        ascii_chars = list(reversed(ascii_chars))
     width, height = image.shape
-    art = np.zeros((width, height * 2), dtype=np.unicode_)
+    block_width, block_height = block_size
+    art = np.zeros((width // block_width, height // block_height), dtype=np.unicode_)
 
-    for i in range(width):
-        for j in range(height):
-            pixel = image[i, j]
-            assert pixel >= 0 and pixel <= 255
-            art[i, j * 2] = ascii_chars[pixel // rng]
-            art[i, j * 2 + 1] = ascii_chars[pixel // rng]
+    for i in range(0, width - block_width, block_width):
+        for j in range(0, height - block_height, block_height):
+            block = compute_neighbors(i, j, block_width, block_height, image).flatten()
+            brightness = int(np.sum(block) // len(block))
+            assert brightness >= 0 and brightness <= 255
+            index = (brightness * len(ascii_chars)) // 256
+            art[i // block_width, j // block_height] = ascii_chars[index]
 
     return art
+
+
+def print_ascii_art(ascii_art: np.ndarray, out=sys.stdout):
+    ascii_art_display = "\n".join(map("".join, ascii_art)) + "\n"
+    out.write(ascii_art_display)
 
 
 def _pad_matrix(matrix: np.ndarray, width, height) -> np.ndarray:

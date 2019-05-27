@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import giraffe as gf
-import numpy as np
+import io
 import matplotlib.pyplot as plt
+import numpy as np
 import pathlib
 
 def save_histogram(image: np.ndarray, path: pathlib.Path):
@@ -38,11 +39,12 @@ def test():
     save_histogram(out, 'histogram.png')
 
 def test_ascii():
-    image = gf.load_image('lenna_32.png')
-    grayscale = gf.rgb_to_grayscale(image)
-    ascii_art = gf.ascii_art(grayscale)
-    ascii_art_display = "\n".join(map("".join, ascii_art))
-    print(ascii_art_display)
+    image = gf.load_image('lenna.png')
+    image = gf.rgb_to_grayscale(image)
+    image = gf.equalize_tone(image)
+    ascii_art = gf.ascii_art(image, block_size=(8, 5))
+    with io.open('lenna.txt', 'w') as f:
+        gf.print_ascii_art(ascii_art, out=f)
 
 
 def test_filter():
@@ -73,4 +75,4 @@ def test_homework2():
     gf.save_image(mirror_v, 'examples/mirror_vertical.png')
 
 
-test_homework2()
+test_ascii()
